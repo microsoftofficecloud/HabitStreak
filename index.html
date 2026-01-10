@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ascend - Master Your Habits</title>
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ascend">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        },
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                        }
+                    },
+                    animation: {
+                        'bounce-short': 'bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.98)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Smooth transitions */
+        .habit-card, button, a, input, select, div[onclick] { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .habit-card:active { transform: scale(0.98); }
+        .backdrop-blur-md { backdrop-filter: blur(12px); }
+
+        /* AI Markdown Styles */
+        .prose p { margin-bottom: 0.5em; }
+        .prose strong { color: #6366f1; }
+        .prose ul { list-style-type: disc; padding-left: 1.2em; margin-bottom: 0.5em; }
+        
+        /* Toggle Switch Animation */
+        .toggle-checkbox {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+            transform: translateX(0);
+        }
+        .toggle-checkbox:checked {
+            transform: translateX(16px);
+            border-color: #6366f1;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #6366f1;
+        }
+        .toggle-label { transition: background-color 0.3s ease; }
+        
+        .heatmap-grid {
+            display: grid;
+            grid-template-rows: repeat(7, minmax(0, 1fr));
+            grid-auto-flow: column;
+            gap: 0.25rem;
+        }
+        
+        /* iOS Safe Area Support */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+        
+        /* Input autofill fix */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #0f172a !important;
+        }
+        .dark input:-webkit-autofill,
+        .dark input:-webkit-autofill:hover, 
+        .dark input:-webkit-autofill:focus, 
+        .dark input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+            -webkit-text-fill-color: white !important;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden font-sans selection:bg-brand-500 selection:text-white bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-500 ease-in-out select-none">
+
+    <!-- Top Navigation / Header -->
+    <header class="px-6 pt-12 pb-2 bg-white/50 dark:bg-dark-900/50 backdrop-blur-sm z-20 transition-all duration-300">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-slate-400 transition-all" data-translate="habitStreak">Habit Streak</h1>
+            <div class="flex gap-3 items-center">
+                <button onclick="app.openAuthModal()" id="header-auth-btn" class="w-8 h-8 rounded-full bg-slate-200 dark:bg-dark-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-brand-500 transition-colors">
+                    <i class="fas fa-user"></i>
+                </button>
+                <div class="bg-slate-100 dark:bg-dark-800 px-3 py-1 rounded-full flex items-center gap-2 shadow-sm transition-colors duration-300">
+                    <i class="fas fa-fire text-orange-500"></i>
+                    <span class="font-bold text-sm" id="total-streak">0</span>
+                </div>
+            </div>
+        </div>
+        <div id="weekly-calendar" class="flex justify-between items-center pb-2 select-none"></div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 overflow-y-auto no-scrollbar p-6 pb-28 relative">
+        <div class="mb-6 animate-fade-in">
+            <h2 id="home-date-title" class="text-3xl font-bold text-slate-900 dark:text-white mb-1 transition-colors" data-translate="today">Today</h2>
+            <p id="home-subtitle" class="text-sm font-medium text-slate-500 dark:text-slate-400 transition-colors" data-translate="upcomingHabits">Upcoming Habits</p>
+        </div>
+
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center h-40 text-center pointer-events-none mt-10">
+            <div class="relative z-10 pointer-events-auto">
+                <h3 class="text-2xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-indigo-600 leading-tight" data-translate="startJourney">Your Transformation<br>Starts Here</h3>
+                <p class="text-slate-500 dark:text-slate-400 text-xs font-medium" data-translate="tapCreate">Tap to create your first habit</p>
+            </div>
+            <div class="fixed bottom-40 right-10 w-24 h-24 pointer-events-none text-slate-400 dark:text-slate-600 animate-bounce-short">
+                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full drop-shadow-lg"><path d="M20 10 C 60 10, 80 40, 80 80" stroke-dasharray="4 4"/><path d="M60 70 L 80 80 L 95 65" /></svg>
+            </div>
+        </div>
+
+        <div id="habits-list" class="space-y-4"></div>
+    </main>
+
+    <!-- Floating Add Button -->
+    <button id="fab-btn" onclick="app.openAddScreen()" class="fixed bottom-24 right-6 w-14 h-14 bg-brand-600 hover:bg-brand-500 rounded-full shadow-2xl shadow-brand-500/40 flex items-center justify-center text-2xl text-white z-40 transition-all duration-300 transform hover:scale-110 active:scale-90 hover:shadow-brand-500/60">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 w-full bg-white/90 dark:bg-dark-900/90 backdrop-blur-md pb-8 pt-4 px-6 z-50 transition-colors duration-300 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.5)] border-t border-slate-100 dark:border-dark-800">
+        <div class="flex justify-between items-center h-12 max-w-sm mx-auto">
+            <button onclick="app.switchTab('home')" class="nav-btn active flex flex-col items-center gap-1 text-brand-500 w-16 transition-all duration-300 active:scale-95" data-tab="home">
+                <i class="fas fa-home text-xl"></i><span class="text-[10px] font-medium" data-translate="home">Home</span>
+            </button>
+            <button onclick="app.switchTab('stats')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-brand-500 w-16 transition-all duration-300 active:scale-95" data-tab="stats">
+                <i class="fas fa-chart-pie text-xl"></i><span class="text-[10px] font-medium" data-translate="stats">Insights</span>
+            </button>
+            <button onclick="app.switchTab('settings')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-brand-500 w-16 transition-all duration-300 active:scale-95" data-tab="settings">
+                <i class="fas fa-cog text-xl"></i><span class="text-[10px] font-medium" data-translate="settings">Settings</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HABIT DETAIL SCREEN -->
+    <div id="habit-detail-screen" class="fixed inset-0 bg-slate-50 dark:bg-dark-900 z-50 hidden flex flex-col overflow-y-auto transition-colors duration-300">
+        <div class="px-6 pt-12 pb-4 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md flex justify-between items-center sticky top-0 z-10 transition-colors duration-300">
+            <button onclick="app.closeHabitDetails()" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-dark-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-dark-700 transition-all"><i class="fas fa-arrow-left"></i></button>
+            <h2 class="text-lg font-bold transition-colors" id="detail-habit-name">Habit Name</h2>
+            <div class="w-10"></div> 
+        </div>
+        <div class="p-6 space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-dark-800 p-4 rounded-3xl shadow-sm text-center transition-colors">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Current Streak</p>
+                    <div class="flex items-center justify-center gap-2"><i class="fas fa-fire text-orange-500 text-xl"></i><span class="text-2xl font-bold text-slate-900 dark:text-white transition-colors" id="detail-current-streak">0</span></div>
+                </div>
+                <div class="bg-white dark:bg-dark-800 p-4 rounded-3xl shadow-sm text-center transition-colors">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Best Streak</p>
+                    <div class="flex items-center justify-center gap-2"><i class="fas fa-trophy text-yellow-500 text-xl"></i><span class="text-2xl font-bold text-slate-900 dark:text-white transition-colors" id="detail-best-streak">0</span></div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-dark-800 p-5 rounded-3xl shadow-sm transition-colors">
+                <h3 class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-4">Activity History (5 Months)</h3>
+                <div id="detail-calendar-container" class="w-full"></div>
+            </div>
+            <div class="grid grid-cols-1 gap-4">
+                <div class="bg-white dark:bg-dark-800 p-5 rounded-3xl shadow-sm flex justify-between items-center transition-colors">
+                     <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Completion Rate</span>
+                     <span class="text-xl font-bold text-slate-900 dark:text-white transition-colors" id="detail-rate">0%</span>
+                </div>
+                <div class="bg-white dark:bg-dark-800 p-5 rounded-3xl shadow-sm flex justify-between items-center transition-colors">
+                     <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Habit Created On</span>
+                     <span class="text-sm font-bold text-slate-900 dark:text-white transition-colors" id="detail-created"></span>
+                </div>
+            </div>
+            <div class="h-12"></div>
+        </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div id="settings-screen" class="absolute inset-0 bg-slate-50 dark:bg-dark-900 z-30 hidden flex flex-col overflow-y-auto pb-24 top-[89px] transition-colors duration-300">
+        <div class="p-6 space-y-8 animate-fade-in">
+            <!-- Preferences -->
+            <section>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1" data-translate="preferences">Preferences</h3>
+                <div class="bg-white dark:bg-dark-800 rounded-3xl overflow-hidden shadow-sm transition-colors">
+                    <div class="p-4 flex items-center justify-between border-b border-slate-50 dark:border-dark-700/50 transition-colors">
+                        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 transition-colors"><i class="fas fa-globe"></i></div><span class="font-medium" data-translate="language">Language</span></div>
+                        <select id="setting-language" onchange="app.saveSettings()" class="bg-transparent text-sm text-slate-500 dark:text-slate-400 focus:outline-none text-right transition-colors">
+                            <option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="ar">العربية</option>
+                        </select>
+                    </div>
+                    <div class="p-4 flex items-center justify-between border-b border-slate-50 dark:border-dark-700/50 transition-colors">
+                        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 transition-colors"><i class="fas fa-moon"></i></div><span class="font-medium" data-translate="darkMode">Dark Mode</span></div>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                            <input type="checkbox" name="toggle" id="theme-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 dark:border-dark-700 left-0" onclick="app.toggleTheme()"/>
+                            <label for="theme-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 dark:bg-dark-700 cursor-pointer"></label>
+                        </div>
+                    </div>
+                    <!-- OpenAI/RapidAPI Key -->
+                    <div class="p-4">
+                        <div class="flex items-center gap-3 mb-2"><div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-500 transition-colors"><i class="fas fa-key"></i></div><span class="font-medium">RapidAPI Key (AI)</span></div>
+                        <input type="password" id="setting-api-key" placeholder="Paste X-RapidAPI-Key" class="w-full bg-slate-50 dark:bg-dark-900 border-none rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors" onchange="app.saveSettings()">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SUPABASE / CLOUD SYNC -->
+            <section>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1">Cloud Sync</h3>
+                
+                <!-- If Logged Out -->
+                <div id="sb-logged-out-card" class="bg-white dark:bg-dark-800 rounded-3xl p-6 shadow-sm transition-colors text-center">
+                    <div class="w-12 h-12 bg-slate-100 dark:bg-dark-700 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                        <i class="fas fa-cloud-upload-alt text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white mb-1">Sync your data</h4>
+                    <p class="text-xs text-slate-500 mb-4">Sign in to save your habits and access them anywhere.</p>
+                    <button onclick="app.openAuthModal()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-brand-500/20 text-sm">
+                        Connect Account
+                    </button>
+                    <button onclick="document.getElementById('server-config').classList.toggle('hidden')" class="text-[10px] text-slate-400 mt-4 underline">Server Settings</button>
+                </div>
+
+                <!-- If Logged In -->
+                <div id="sb-logged-in-card" class="hidden bg-gradient-to-br from-brand-600 to-indigo-700 rounded-3xl p-6 shadow-lg shadow-brand-500/30 text-white relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-sync fa-3x"></i></div>
+                    <div class="flex items-center gap-3 mb-4 relative z-10">
+                        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold backdrop-blur-sm">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-indigo-100 opacity-80">Signed in as</p>
+                            <p class="font-bold text-sm truncate max-w-[150px]" id="sb-user-email">user@example.com</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-indigo-100 mb-4 bg-white/10 p-2 rounded-lg inline-flex">
+                        <i class="fas fa-check-circle text-emerald-300"></i>
+                        <span>Sync Active</span>
+                    </div>
+                    <button onclick="sb.logout()" class="w-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 rounded-xl transition-colors border border-white/20">
+                        Log Out
+                    </button>
+                </div>
+
+                <!-- Hidden Config -->
+                <div id="server-config" class="hidden mt-4 bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm">
+                    <h5 class="text-xs font-bold text-slate-400 uppercase mb-2">Supabase Config</h5>
+                    <div class="space-y-2">
+                        <input type="text" id="sb-url" placeholder="Project URL" class="w-full bg-slate-50 dark:bg-dark-900 border-none rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+                        <input type="password" id="sb-key" placeholder="API Key" class="w-full bg-slate-50 dark:bg-dark-900 border-none rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+                        <button onclick="sb.initClient()" class="w-full bg-slate-200 dark:bg-dark-700 text-slate-600 dark:text-slate-300 text-xs font-bold py-2 rounded-lg">Update Config</button>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1" data-translate="data">Data</h3>
+                <div class="bg-white dark:bg-dark-800 rounded-3xl overflow-hidden shadow-sm transition-colors">
+                    <button onclick="app.openArchivedModal()" class="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-dark-700 transition-colors">
+                        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 transition-colors"><i class="fas fa-archive"></i></div><span class="font-medium" data-translate="archivedHabits">Archived Habits</span></div><i class="fas fa-chevron-right text-slate-400 text-xs"></i>
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- STATS SCREEN -->
+    <div id="stats-screen" class="absolute inset-0 bg-slate-50 dark:bg-dark-900 z-30 hidden flex flex-col top-[89px] transition-colors duration-300">
+        <div class="p-6 pb-2 flex justify-between items-start animate-fade-in">
+            <div><h2 class="text-2xl font-bold transition-colors" data-translate="insights">Insights</h2><p class="text-slate-500 dark:text-slate-400 text-sm transition-colors" data-translate="progressOverview">Your progress overview</p></div>
+            <button onclick="ai.generateMotivation()" class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all"><i class="fas fa-robot"></i> <span data-translate="aiCoach">AI Coach</span></button>
+        </div>
+        <div class="px-6 pb-4 animate-fade-in">
+            <div class="bg-slate-200 dark:bg-dark-800 p-1 rounded-xl flex font-medium text-sm transition-colors">
+                <button onclick="app.setStatsRange('W')" id="btn-range-W" class="flex-1 py-1.5 rounded-lg transition-all relative">W</button>
+                <button onclick="app.setStatsRange('M')" id="btn-range-M" class="flex-1 py-1.5 rounded-lg transition-all relative">M</button>
+                <button onclick="app.setStatsRange('Y')" id="btn-range-Y" class="flex-1 py-1.5 rounded-lg transition-all relative">Y</button>
+                <button onclick="app.setStatsRange('All')" id="btn-range-All" class="flex-1 py-1.5 rounded-lg transition-all relative">All</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 space-y-4 pt-2 animate-fade-in">
+            <div id="ai-coach-container" class="hidden bg-white dark:bg-dark-800 border-l-4 border-indigo-500 rounded-2xl p-5 relative overflow-hidden animate-fade-in shadow-sm mb-4 transition-colors">
+                <h3 class="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2 transition-colors"><i class="fas fa-sparkles"></i> <span data-translate="dailyInsight">Daily Insight</span></h3>
+                <div id="ai-coach-text" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed prose prose-indigo max-w-none transition-colors"></div>
+                <div id="ai-coach-loading" class="hidden py-4 text-center"><div class="flex justify-center gap-1"><div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div><div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div></div></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-dark-800 rounded-3xl p-5 shadow-sm flex flex-col justify-between h-32 transition-colors"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider transition-colors" data-translate="completed">Completed</h3><div class="flex items-end gap-1"><span class="text-3xl font-bold text-slate-900 dark:text-white transition-colors" id="stats-total-completions">0</span><span class="text-xs text-slate-500 mb-1.5" data-translate="times">times</span></div></div>
+                <div class="bg-white dark:bg-dark-800 rounded-3xl p-5 shadow-sm flex flex-col justify-between h-32 transition-colors"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider transition-colors" data-translate="perfectDays">Perfect Days</h3><div class="flex items-end gap-1"><span class="text-3xl font-bold text-emerald-500" id="stats-perfect-days">0</span><span class="text-xs text-slate-500 mb-1.5" data-translate="days">days</span></div></div>
+                <div class="bg-white dark:bg-dark-800 rounded-3xl p-5 shadow-sm flex flex-col justify-between h-32 transition-colors col-span-2"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider transition-colors" data-translate="bestStreak">Best Streak</h3><div class="flex items-end gap-1"><span class="text-3xl font-bold text-amber-500" id="stats-best-streak">0</span><span class="text-xs text-slate-500 mb-1.5" data-translate="days">days</span></div></div>
+            </div>
+            <div class="bg-white dark:bg-dark-800 rounded-3xl p-5 shadow-sm transition-colors">
+                <div class="flex justify-between items-center mb-4"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider transition-colors" data-translate="completionRate">Completion Rate</h3><span class="text-lg font-bold text-slate-900 dark:text-white transition-colors" id="stats-rate-header">0%</span></div>
+                <div class="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-3 mb-2 overflow-hidden transition-colors"><div id="stats-progress-bar" class="bg-brand-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div></div>
+            </div>
+            <div class="bg-white dark:bg-dark-800 rounded-3xl p-5 shadow-sm transition-colors">
+                <div class="flex justify-between items-end mb-4"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider transition-colors" data-translate="activityHeatmap">Activity Heatmap</h3></div>
+                <div class="overflow-x-auto no-scrollbar"><div id="stats-heatmap" class="heatmap-grid w-max min-w-full"></div></div>
+            </div>
+        </div>
+        <div class="h-24"></div> 
+    </div>
+
+    <!-- AUTH MODAL (NEW) -->
+    <div id="auth-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0" id="auth-backdrop" onclick="app.closeAuthModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative bg-white dark:bg-dark-800 w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-300 transform scale-95 opacity-0" id="auth-content">
+            <!-- Close Button -->
+            <button onclick="app.closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-dark-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <!-- Header -->
+            <div class="p-8 pb-2 text-center">
+                <div class="w-16 h-16 bg-gradient-to-tr from-brand-500 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl text-white shadow-lg shadow-brand-500/30 mb-5">
+                    <i class="fas fa-user-astronaut"></i>
+                </div>
+                <h2 id="auth-title" class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h2>
+                <p id="auth-subtitle" class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Sign in to sync your habits<br>across all your devices.</p>
+            </div>
+
+            <!-- Form -->
+            <div class="p-8 pt-6 space-y-4">
+                 <!-- Error Message -->
+                <div id="auth-error" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs p-3 rounded-xl flex items-start gap-2">
+                    <i class="fas fa-exclamation-circle mt-0.5 shrink-0"></i> <span id="auth-error-text">Error message</span>
+                </div>
+
+                <form onsubmit="sb.handleAuth(event)" class="space-y-4">
+                    <div class="space-y-4">
+                        <div class="relative group">
+                            <i class="fas fa-envelope absolute left-4 top-3.5 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
+                            <input type="email" id="auth-email" required class="w-full bg-slate-50 dark:bg-dark-900 pl-11 pr-4 py-3.5 rounded-xl outline-none border-2 border-transparent focus:border-brand-500/50 focus:bg-white dark:focus:bg-dark-800 transition-all text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400" placeholder="Email address">
+                        </div>
+                        <div class="relative group">
+                            <i class="fas fa-lock absolute left-4 top-3.5 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
+                            <input type="password" id="auth-pass" required class="w-full bg-slate-50 dark:bg-dark-900 pl-11 pr-4 py-3.5 rounded-xl outline-none border-2 border-transparent focus:border-brand-500/50 focus:bg-white dark:focus:bg-dark-800 transition-all text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400" placeholder="Password">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="auth-submit-btn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 group">
+                        <span id="auth-btn-text">Sign In</span>
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        <div id="auth-loading" class="hidden"><i class="fas fa-circle-notch fa-spin"></i></div>
+                    </button>
+                </form>
+                
+                <div class="text-center mt-6 border-t border-slate-100 dark:border-dark-700 pt-4">
+                    <button onclick="sb.toggleAuthMode()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" id="auth-switch-text">
+                        New here? <span class="font-bold text-brand-600 dark:text-brand-500 ml-1">Create an account</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 z-[80] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="app.closeConfirmModal()"></div>
+        <div class="relative bg-white dark:bg-dark-800 w-full max-w-sm rounded-3xl shadow-2xl p-6 transform scale-100 transition-all">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2" id="confirm-title">Confirm Action</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" id="confirm-msg">Are you sure?</p>
+            <div class="flex gap-3">
+                <button onclick="app.closeConfirmModal()" class="flex-1 py-3 bg-slate-100 dark:bg-dark-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-dark-600 transition-colors">Cancel</button>
+                <button id="confirm-yes-btn" class="flex-1 py-3 bg-brand-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-500/30 hover:bg-brand-500 transition-all">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD HABIT PAGE -->
+    <div id="add-habit-page" class="fixed inset-0 z-[60] bg-slate-50 dark:bg-dark-900 transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) translate-x-full flex flex-col">
+        <div class="px-6 pt-10 pb-4 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md flex items-center gap-4 border-b border-slate-100 dark:border-dark-700 z-10 sticky top-0 transition-colors">
+            <button onclick="app.closeAddScreen()" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-dark-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-dark-700 transition-all"><i class="fas fa-arrow-left"></i></button>
+            <h2 id="add-screen-title" class="text-xl font-bold text-slate-900 dark:text-white transition-colors">Choose Habit</h2>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 pb-24">
+            <div id="category-view" class="space-y-6 animate-fade-in">
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="app.showHabitForm()" class="bg-brand-500 hover:bg-brand-600 text-white p-4 rounded-3xl shadow-lg shadow-brand-500/30 flex flex-col items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"><i class="fas fa-plus text-2xl"></i><span class="font-bold text-sm">Custom</span></button>
+                    <button onclick="app.showAIForm()" class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 p-4 rounded-3xl border border-indigo-200 dark:border-indigo-500/30 flex flex-col items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"><i class="fas fa-sparkles text-2xl text-yellow-500"></i><span class="font-bold text-sm">AI Assist</span></button>
+                </div>
+                <div>
+                    <div class="mb-4"><div id="categories-scroll" class="flex gap-3 overflow-x-auto no-scrollbar pb-2"></div></div>
+                    <div id="category-content" class="animate-fade-in">
+                        <h3 id="cat-title" class="text-lg font-bold text-slate-900 dark:text-white mb-1 uppercase tracking-wide transition-colors"></h3>
+                        <p id="cat-desc" class="text-sm text-slate-500 dark:text-slate-400 mb-4 leading-relaxed transition-colors"></p>
+                        <div id="cat-habits-list" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="form-view" class="hidden animate-fade-in">
+                <form id="standard-form" onsubmit="app.saveHabit(event)">
+                    <div class="mb-5"><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 transition-colors" data-translate="habitName">Habit Name</label><input type="text" id="habit-name" placeholder="e.g., Read 30 mins" class="w-full bg-slate-100 dark:bg-dark-800 border-none rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" required></div>
+                    <div class="mb-5"><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 transition-colors" data-translate="goalType">Goal Type</label><div class="grid grid-cols-2 gap-3"><label class="cursor-pointer"><input type="radio" name="habit-type" value="build" class="peer hidden" checked><div class="bg-slate-100 dark:bg-dark-800 rounded-xl p-3 text-center peer-checked:bg-emerald-100 dark:peer-checked:bg-emerald-500/10 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-500 transition-all text-slate-600 dark:text-slate-300 ring-2 ring-transparent peer-checked:ring-emerald-500"><i class="fas fa-plus-circle mb-1 block text-lg"></i><span class="text-sm font-semibold" data-translate="build">Build</span></div></label><label class="cursor-pointer"><input type="radio" name="habit-type" value="quit" class="peer hidden"><div class="bg-slate-100 dark:bg-dark-800 rounded-xl p-3 text-center peer-checked:bg-red-100 dark:peer-checked:bg-red-500/10 peer-checked:text-red-600 dark:peer-checked:text-red-500 transition-all text-slate-600 dark:text-slate-300 ring-2 ring-transparent peer-checked:ring-red-500"><i class="fas fa-ban mb-1 block text-lg"></i><span class="text-sm font-semibold" data-translate="quit">Quit</span></div></label></div></div>
+                    <div class="mb-8"><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 transition-colors" data-translate="color">Color</label><div class="flex gap-3 overflow-x-auto no-scrollbar py-1"><div id="color-picker" class="flex gap-3"></div></div><input type="hidden" id="selected-color" value="blue"></div>
+                    <button type="submit" class="w-full bg-slate-900 dark:bg-white text-white dark:text-dark-900 font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg" data-translate="createHabit">Create Habit</button>
+                </form>
+                <div id="ai-form" class="hidden flex-col h-full overflow-hidden transition-opacity duration-300">
+                    <div class="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-4 mb-4 transition-colors"><p class="text-sm text-indigo-600 dark:text-indigo-200 mb-3 transition-colors"><i class="fas fa-magic mr-2"></i><span data-translate="aiPrompt">What is your main goal?</span></p><div class="flex gap-2"><input type="text" id="ai-goal-input" placeholder="e.g. 'Sleep better' or 'Learn Guitar'" class="flex-1 bg-white dark:bg-dark-900 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 transition-all" onkeyup="if(event.key === 'Enter') ai.generateHabits()"><button type="button" onclick="ai.generateHabits()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 rounded-lg text-sm font-bold transition-all">Go</button></div></div>
+                    <div id="ai-loading" class="hidden py-8 text-center"><i class="fas fa-circle-notch fa-spin text-2xl text-indigo-400 mb-2"></i><p class="text-xs text-indigo-400 dark:text-indigo-300 animate-pulse transition-colors">Designing your routine...</p></div>
+                    <div id="ai-results" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="confetti" class="fixed inset-0 pointer-events-none z-[100]"></canvas>
+
+    <script>
+        // --- CONFIGURATION ---
+        const envApiKey = "aaa573c604msh3734c5228fdcad9p11e3bajsn796be259cc13"; 
+        const DB_KEY = 'ascend_habits_v3';
+        const SETTINGS_KEY = 'ascend_settings_v3';
+        const SUPABASE_CONFIG_KEY = 'ascend_supabase_v1';
+        
+        // Supabase Integration (Integrated Key)
+        const SUPABASE_URL_DEFAULT = "https://fwpcetcodcynztdliwgn.supabase.co";
+        const SUPABASE_KEY_DEFAULT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3cGNldGNvZGN5bnp0ZGxpd2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5ODIwNjEsImV4cCI6MjA4MzU1ODA2MX0._kYmtmdbCi5XEyo13IU9Y5dTVjSjwKigGgLoSNhwc68";
+
+        const COLORS = [
+            { id: 'blue', bg: 'bg-blue-500', text: 'text-blue-500', ring: 'ring-blue-500' },
+            { id: 'emerald', bg: 'bg-emerald-500', text: 'text-emerald-500', ring: 'ring-emerald-500' },
+            { id: 'purple', bg: 'bg-purple-500', text: 'text-purple-500', ring: 'ring-purple-500' },
+            { id: 'orange', bg: 'bg-orange-500', text: 'text-orange-500', ring: 'ring-orange-500' },
+            { id: 'rose', bg: 'bg-rose-500', text: 'text-rose-500', ring: 'ring-rose-500' },
+        ];
+
+        const PREDEFINED_CATEGORIES = [
+            { id: 'popular', name: 'Popular', icon: 'fa-star', description: 'Start with proven habits that have helped thousands succeed.', color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
+            { id: 'health', name: 'Health', icon: 'fa-heart-pulse', description: 'Boost your vitality and energy levels.', color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
+            { id: 'sports', name: 'Sports', icon: 'fa-dumbbell', description: 'Get moving and stay fit with these activities.', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-200 dark:bg-slate-700' },
+            { id: 'lifestyle', name: 'Lifestyle', icon: 'fa-mug-hot', description: 'Organize your life and improve relationships.', color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+            { id: 'mind', name: 'Mind Growth', icon: 'fa-brain', description: 'Expand your knowledge and mental clarity.', color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+            { id: 'bad', name: 'Break Bad', icon: 'fa-ban', description: 'Eliminate negative patterns from your life.', color: 'text-rose-600', bg: 'bg-rose-100 dark:bg-rose-900/30' }
+        ];
+
+        const PREDEFINED_HABITS = {
+            popular: [
+                { name: 'Drink Water', type: 'build', color: 'blue', icon: 'fa-glass-water' },
+                { name: 'Read Book', type: 'build', color: 'purple', icon: 'fa-book-open' },
+                { name: 'Meditate', type: 'build', color: 'emerald', icon: 'fa-om' },
+                { name: 'Exercise', type: 'build', color: 'orange', icon: 'fa-person-running' },
+                { name: 'Wake up Early', type: 'build', color: 'rose', icon: 'fa-sun' }
+            ],
+            health: [
+                { name: 'Sleep 8 Hours', type: 'build', color: 'blue', icon: 'fa-bed' },
+                { name: 'Take Vitamins', type: 'build', color: 'emerald', icon: 'fa-pills' },
+                { name: 'No Sugar', type: 'quit', color: 'rose', icon: 'fa-candy-cane' },
+                { name: 'Eat Fruit', type: 'build', color: 'orange', icon: 'fa-apple-whole' }
+            ],
+            sports: [
+                { name: 'Go to Gym', type: 'build', color: 'blue', icon: 'fa-dumbbell' },
+                { name: 'Running', type: 'build', color: 'orange', icon: 'fa-person-running' },
+                { name: 'Yoga', type: 'build', color: 'purple', icon: 'fa-spa' },
+                { name: 'Stretching', type: 'build', color: 'emerald', icon: 'fa-person-walking' }
+            ],
+            lifestyle: [
+                { name: 'Clean Room', type: 'build', color: 'blue', icon: 'fa-broom' },
+                { name: 'Call Parents', type: 'build', color: 'purple', icon: 'fa-phone' },
+                { name: 'Budget Tracking', type: 'build', color: 'emerald', icon: 'fa-wallet' },
+                { name: 'Journaling', type: 'build', color: 'orange', icon: 'fa-pen-fancy' }
+            ],
+            mind: [
+                { name: 'Learn Language', type: 'build', color: 'blue', icon: 'fa-language' },
+                { name: 'Coding Practice', type: 'build', color: 'purple', icon: 'fa-laptop-code' },
+                { name: 'Read News', type: 'build', color: 'emerald', icon: 'fa-newspaper' },
+                { name: 'Listen Podcast', type: 'build', color: 'orange', icon: 'fa-headphones' }
+            ],
+            bad: [
+                { name: 'No Smoking', type: 'quit', color: 'rose', icon: 'fa-smoking-ban' },
+                { name: 'No Social Media', type: 'quit', color: 'blue', icon: 'fa-mobile-screen-button' },
+                { name: 'No Junk Food', type: 'quit', color: 'orange', icon: 'fa-burger' },
+                { name: 'No Alcohol', type: 'quit', color: 'purple', icon: 'fa-wine-bottle' }
+            ]
+        };
+
+        const TRANSLATIONS = {
+            en: {
+                today: "Today", upcomingHabits: "Upcoming Habits", habitStreak: "Habit Streak", myFocus: "My Focus", startJourney: "Your Transformation<br>Starts Here", tapCreate: "Tap to create your first habit",
+                home: "Home", stats: "Insights", settings: "Settings", preferences: "Preferences", language: "Language", weekStart: "Week starts on",
+                darkMode: "Dark Mode", data: "Data", archivedHabits: "Archived Habits", about: "About", shareApp: "Share App",
+                devContact: "Developer Contact", reachOut: "Feel free to reach out", insights: "Insights", progressOverview: "Your progress overview",
+                aiCoach: "AI Coach", dailyInsight: "Daily Insight", completed: "Completed", times: "times", perfectDays: "Perfect Days", days: "days",
+                completionRate: "Completion Rate", activityHeatmap: "Activity Heatmap", bestStreak: "Best Streak", newHabit: "New Habit",
+                aiAssist: "AI Assist", habitName: "Habit Name", goalType: "Goal Type", build: "Build", quit: "Quit", color: "Color",
+                createHabit: "Create Habit", aiPrompt: "What is your main goal?", sunday: "Sunday", monday: "Monday", saturday: "Saturday", bestStreak: "Best Streak"
+            },
+            es: { today: "Hoy", upcomingHabits: "Próximos Hábitos", habitStreak: "Racha de Hábitos", myFocus: "Mi Enfoque", startJourney: "Tu Transformación<br>Comienza Aquí", tapCreate: "Toca para crear tu primer hábito", home: "Inicio", stats: "Estadísticas", settings: "Ajustes", preferences: "Preferencias", language: "Idioma", weekStart: "Semana inicia", darkMode: "Modo Oscuro", data: "Datos", archivedHabits: "Hábitos Archivados", about: "Acerca de", shareApp: "Compartir", devContact: "Contacto Desarrollador", reachOut: "Contáctame", insights: "Perspectivas", progressOverview: "Resumen de progreso", aiCoach: "Entrenador IA", dailyInsight: "Consejo Diario", completed: "Completado", times: "veces", perfectDays: "Días Perfectos", days: "días", completionRate: "Tasa de Éxito", activityHeatmap: "Mapa de Actividad", bestStreak: "Mejor Racha", newHabit: "Nuevo Hábito", aiAssist: "Asistente IA", habitName: "Nombre", goalType: "Tipo", build: "Construir", quit: "Dejar", color: "Color", createHabit: "Crear Hábito", aiPrompt: "¿Cuál es tu meta?", sunday: "Domingo", monday: "Lunes", saturday: "Sábado", bestStreak: "Mejor Racha" },
+            fr: { today: "Aujourd'hui", upcomingHabits: "Habitudes à venir", habitStreak: "Série d'habitudes", myFocus: "Mon Focus", startJourney: "Votre Transformation<br>Commence Ici", tapCreate: "Appuyez pour créer", home: "Accueil", stats: "Aperçu", settings: "Réglages", preferences: "Préférences", language: "Langue", weekStart: "Début semaine", darkMode: "Mode Sombre", data: "Données", archivedHabits: "Archives", about: "À propos", shareApp: "Partager", devContact: "Contact Développeur", reachOut: "N'hésitez pas", insights: "Aperçu", progressOverview: "Votre progression", aiCoach: "Coach IA", dailyInsight: "Conseil du Jour", completed: "Terminé", times: "fois", perfectDays: "Jours Parfaits", days: "jours", completionRate: "Taux de réussite", activityHeatmap: "Carte d'activité", bestStreak: "Meilleure Série", newHabit: "Nouveau", aiAssist: "Aide IA", habitName: "Nom", goalType: "Type", build: "Créer", quit: "Arrêter", color: "Couleur", createHabit: "Sauvegarder", aiPrompt: "Quel est votre but?", sunday: "Dimanche", monday: "Lundi", saturday: "Samedi", bestStreak: "Meilleure Série" },
+            ar: { today: "اليوم", upcomingHabits: "عادات قادمة", habitStreak: "سلسلة العادات", myFocus: "تركيزي", startJourney: "تحولك يبدأ<br>من هنا", tapCreate: "اضغط لإنشاء أول عادة", home: "الرئيسية", stats: "رؤى", settings: "الإعدادات", preferences: "تفضيلات", language: "اللغة", weekStart: "بداية الأسبوع", darkMode: "الوضع الليلي", data: "البيانات", archivedHabits: "الأرشيف", about: "حول", shareApp: "شارك التطبيق", devContact: "تواصل مع المطور", reachOut: "لا تتردد في التواصل", insights: "تحليلات", progressOverview: "نظرة عامة", aiCoach: "مدرب الذكاء", dailyInsight: "نصيحة يومية", completed: "مكتملة", times: "مرات", perfectDays: "أيام مثالية", days: "أيام", completionRate: "معدل الإنجاز", activityHeatmap: "خريطة النشاط", bestStreak: "أفضل تتابع", newHabit: "عادة جديدة", aiAssist: "مساعد ذكي", habitName: "اسم العادة", goalType: "النوع", build: "بناء", quit: "ترك", color: "لون", createHabit: "إنشاء عادة", aiPrompt: "ما هو هدفك الرئيسي؟", sunday: "الأحد", monday: "الاثنين", saturday: "السبت", bestStreak: "أفضل تتابع" }
+        };
+
+        // --- SUPABASE SERVICE (FIXED FOR SEPARATION) ---
+        class SupabaseService {
+            constructor() {
+                this.client = null;
+                this.user = null;
+                this.isLoginMode = true; // State for Auth Toggle
+                this.loadConfig();
+            }
+
+            loadConfig() {
+                let config = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY) || '{}');
+                
+                // Automatically use default key if no custom config exists
+                if (!config.url || !config.key) {
+                    config.url = SUPABASE_URL_DEFAULT;
+                    config.key = SUPABASE_KEY_DEFAULT;
+                }
+
+                if (config.url && config.key) {
+                    // Pre-fill UI fields for manual override
+                    const urlInput = document.getElementById('sb-url');
+                    const keyInput = document.getElementById('sb-key');
+                    if (urlInput) urlInput.value = config.url;
+                    if (keyInput) keyInput.value = config.key;
+                    
+                    this.initClient(config.url, config.key);
+                }
+            }
+
+            initClient(url, key) {
+                // Safety check for supabase global
+                if (typeof supabase === 'undefined') {
+                    console.warn("Supabase SDK not loaded. Offline mode only.");
+                    return;
+                }
+
+                const _url = url || document.getElementById('sb-url').value.trim();
+                const _key = key || document.getElementById('sb-key').value.trim();
+                
+                if (!_url || !_key) return;
+
+                try {
+                    this.client = supabase.createClient(_url, _key);
+                    localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url: _url, key: _key }));
+                    
+                    this.checkUser();
+                } catch (e) {
+                    console.error("Supabase Init Error", e);
+                }
+            }
+
+            async checkUser() {
+                // Check for real Supabase session
+                if (this.client) {
+                    try {
+                        const { data: { session } } = await this.client.auth.getSession();
+                        if (session?.user) {
+                            this.updateAuthUI(session.user);
+                            this.syncDown();
+                            return;
+                        }
+                    } catch (e) { console.warn("Session check failed", e); }
+                }
+
+                // Fallback: Check for Local Demo User
+                const demoUser = JSON.parse(localStorage.getItem('ascend_demo_user'));
+                if (demoUser) {
+                    this.updateAuthUI(demoUser);
+                    // Load local data as "synced"
+                    // Use dynamic key for demo user as well
+                    const demoKey = `ascend_habits_${demoUser.id}`;
+                    const localData = JSON.parse(localStorage.getItem(demoKey) || '[]');
+                    if(localData.length > 0) app.habits = localData;
+                    else app.habits = [];
+                    app.renderHabits();
+                    app.updateTotalStreak();
+                    app.updateStats();
+                }
+            }
+
+            updateAuthUI(user) {
+                this.user = user;
+                const loggedInCard = document.getElementById('sb-logged-in-card');
+                const loggedOutCard = document.getElementById('sb-logged-out-card');
+                const headerBtn = document.getElementById('header-auth-btn');
+                const userEmail = document.getElementById('sb-user-email');
+
+                if (user) {
+                    if(loggedInCard) loggedInCard.classList.remove('hidden');
+                    if(loggedOutCard) loggedOutCard.classList.add('hidden');
+                    if(userEmail) {
+                        userEmail.innerText = user.email;
+                        if(user.is_demo) userEmail.innerHTML += ' <span class="opacity-70 text-[10px] ml-1">(Demo)</span>';
+                    }
+                    if(headerBtn) {
+                        headerBtn.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i>';
+                        headerBtn.classList.add('bg-emerald-100', 'dark:bg-emerald-900/30');
+                    }
+                } else {
+                    if(loggedInCard) loggedInCard.classList.add('hidden');
+                    if(loggedOutCard) loggedOutCard.classList.remove('hidden');
+                    if(headerBtn) {
+                        headerBtn.innerHTML = '<i class="fas fa-user"></i>';
+                        headerBtn.classList.remove('bg-emerald-100', 'dark:bg-emerald-900/30');
+                    }
+                }
+            }
+
+            toggleAuthMode() {
+                this.isLoginMode = !this.isLoginMode;
+                const title = document.getElementById('auth-title');
+                const subtitle = document.getElementById('auth-subtitle');
+                const btnText = document.getElementById('auth-btn-text');
+                const switchText = document.getElementById('auth-switch-text');
+                const errorBox = document.getElementById('auth-error');
+
+                errorBox.classList.add('hidden'); // Clear errors
+
+                if (this.isLoginMode) {
+                    title.textContent = "Welcome Back";
+                    subtitle.innerHTML = "Sign in to sync your habits<br>across all your devices.";
+                    btnText.textContent = "Sign In";
+                    switchText.innerHTML = `New here? <span class="font-bold text-brand-600 dark:text-brand-500 ml-1">Create an account</span>`;
+                } else {
+                    title.textContent = "Create Account";
+                    subtitle.innerHTML = "Start your journey to<br>a better you today.";
+                    btnText.textContent = "Sign Up";
+                    switchText.innerHTML = `Already have an account? <span class="font-bold text-brand-600 dark:text-brand-500 ml-1">Sign In</span>`;
+                }
+            }
+
+            showError(msg) {
+                const errorBox = document.getElementById('auth-error');
+                const errorText = document.getElementById('auth-error-text');
+                errorText.textContent = msg;
+                errorBox.classList.remove('hidden');
+                errorBox.classList.add('animate-bounce-short');
+                setTimeout(() => errorBox.classList.remove('animate-bounce-short'), 500);
+            }
+
+            setLoading(isLoading) {
+                const btn = document.getElementById('auth-submit-btn');
+                const loadingIcon = document.getElementById('auth-loading');
+                const arrowIcon = btn.querySelector('.fa-arrow-right');
+                
+                if (isLoading) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-not-allowed', 'auth-fallback-active');
+                    loadingIcon.classList.remove('hidden');
+                    if(arrowIcon) arrowIcon.classList.add('hidden');
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed', 'auth-fallback-active');
+                    loadingIcon.classList.add('hidden');
+                    if(arrowIcon) arrowIcon.classList.remove('hidden');
+                }
+            }
+
+            async handleAuth(e) {
+                if(e) e.preventDefault();
+                
+                const email = document.getElementById('auth-email').value;
+                const password = document.getElementById('auth-pass').value;
+
+                if (!email || !password) {
+                    this.showError("Please fill in all fields.");
+                    return;
+                }
+
+                this.setLoading(true);
+                document.getElementById('auth-error').classList.add('hidden');
+
+                try {
+                    if (!this.client) throw new Error("No Client");
+
+                    let result;
+                    if (this.isLoginMode) {
+                        result = await this.client.auth.signInWithPassword({ email, password });
+                    } else {
+                        result = await this.client.auth.signUp({ email, password });
+                    }
+
+                    const { data, error } = result;
+
+                    if (error) {
+                        if (error.message === "Failed to fetch" || error.message === "Load failed" || !error.status) {
+                             throw new Error("Network/Config Error");
+                        }
+                        this.showError(error.message);
+                        this.setLoading(false);
+                    } else {
+                        this.setLoading(false);
+                        if (!this.isLoginMode && !data.session) {
+                            alert("Account created! Please check your email to confirm.");
+                            this.toggleAuthMode(); 
+                        } else {
+                            this.updateAuthUI(data.user);
+                            
+                            // CRITICAL FIX: Explicitly clear memory immediately before fetching new data
+                            app.habits = []; 
+                            app.renderHabits(); 
+                            
+                            this.syncDown();
+                            app.closeAuthModal();
+                            triggerConfetti();
+                        }
+                    }
+                } catch (err) {
+                    // FALLBACK TO DEMO MODE
+                    console.warn("Backend unavailable, using local demo mode.", err);
+                    
+                    let hash = 0;
+                    for (let i = 0; i < email.length; i++) {
+                        const char = email.charCodeAt(i);
+                        hash = ((hash << 5) - hash) + char;
+                        hash = hash & hash;
+                    }
+                    const pseudoId = 'demo-' + Math.abs(hash);
+                    
+                    const demoUser = { id: pseudoId, email: email, is_demo: true };
+                    
+                    setTimeout(() => {
+                        localStorage.setItem('ascend_demo_user', JSON.stringify(demoUser));
+                        this.updateAuthUI(demoUser);
+                        
+                        // CRITICAL FIX: Clear memory for Demo user too
+                        app.habits = [];
+                        
+                        const demoKey = `ascend_habits_${pseudoId}`;
+                        const localData = JSON.parse(localStorage.getItem(demoKey) || '[]');
+                        app.habits = localData;
+                        
+                        this.setLoading(false);
+                        app.closeAuthModal();
+                        app.renderHabits();
+                        app.updateTotalStreak();
+                        app.updateStats();
+                        triggerConfetti();
+                    }, 1000);
+                }
+            }
+
+            async logout() {
+                if(this.client) await this.client.auth.signOut();
+                localStorage.removeItem('ascend_demo_user');
+                
+                // CRITICAL FIX: Explicitly clear data before switching to guest mode
+                app.habits = [];
+                
+                // Update UI to logged out state (sets sb.user = null)
+                this.updateAuthUI(null);
+                
+                // Load Guest Data
+                app.loadGuestData(); 
+            }
+
+            // Sync Data: Upsert user_data table
+            async syncUp(habits) {
+                if (this.user?.is_demo) {
+                    // Demo mode: just save to local storage (already done by app.saveData)
+                    return;
+                }
+                if (!this.client || !this.user) return;
+                
+                const { error } = await this.client
+                    .from('user_data')
+                    .upsert({ user_id: this.user.id, habits: habits, updated_at: new Date() });
+                
+                if (error) console.error("Sync Up Error:", error);
+            }
+
+            async syncDown() {
+                if (this.user?.is_demo) return; // Demo mode uses local storage
+                if (!this.client || !this.user) return;
+
+                // CRITICAL FIX: Clear habits while loading to prevent ghost data
+                app.habits = [];
+                app.renderHabits();
+
+                const { data, error } = await this.client
+                    .from('user_data')
+                    .select('habits')
+                    .eq('user_id', this.user.id)
+                    .single();
+
+                if (data && data.habits) {
+                    app.habits = data.habits;
+                } else {
+                    // FIX: Ensure strict account separation for new users
+                    app.habits = []; 
+                }
+                
+                app.saveData(true); // true = skip syncUp to prevent loop
+                app.renderHabits();
+                app.updateTotalStreak();
+                app.updateStats();
+            }
+        }
+
+        // --- AI INTEGRATION (RapidAPI) ---
+        class AIIntegration {
+            constructor() {
+                this.baseUrl = "https://chatgpt-42.p.rapidapi.com/gpt4";
+                this.apiHost = "chatgpt-42.p.rapidapi.com";
+            }
+            getApiKey() {
+                const userKey = app.settings.apiKey;
+                return userKey && userKey.length > 10 ? userKey : envApiKey;
+            }
+            async callAI(prompt, isJson = false) {
+                const key = this.getApiKey();
+                if (!key) { alert("API Key is missing."); return null; }
+                let finalPrompt = prompt;
+                if (isJson) finalPrompt += " IMPORTANT: Return ONLY a raw JSON array. No markdown.";
+                try {
+                    const response = await fetch(this.baseUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-rapidapi-host': this.apiHost, 'x-rapidapi-key': key },
+                        body: JSON.stringify({ messages: [{ role: "user", content: finalPrompt }], web_access: false })
+                    });
+                    if (!response.ok) throw new Error("API Error");
+                    const data = await response.json();
+                    return data.result || data.response || data.choices?.[0]?.message?.content || "";
+                } catch (error) { return null; }
+            }
+            async generateHabits() {
+                const goal = document.getElementById('ai-goal-input').value;
+                if (!goal) return;
+                document.getElementById('ai-loading').classList.remove('hidden');
+                document.getElementById('ai-results').innerHTML = '';
+                const prompt = `I want to achieve: "${goal}". Suggest 3 specific daily habits. Return JSON array: [{name, type ('build'/'quit'), color ('blue','emerald','purple','orange','rose'), reason}]`;
+                const jsonStr = await this.callAI(prompt, true);
+                document.getElementById('ai-loading').classList.add('hidden');
+                if (jsonStr) {
+                    try {
+                        const habits = JSON.parse(jsonStr.match(/\[[\s\S]*\]/)[0]);
+                        habits.forEach(h => {
+                            const el = document.createElement('div');
+                            el.className = 'bg-slate-50 dark:bg-dark-800 p-3 rounded-xl flex items-center justify-between animate-fade-in transition-colors';
+                            el.innerHTML = `<div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="text-xs font-bold uppercase ${h.type === 'build' ? 'text-emerald-500' : 'text-rose-500'} border px-1.5 py-0.5 rounded">${h.type}</span><h4 class="font-bold text-sm text-slate-900 dark:text-white">${h.name}</h4></div><p class="text-xs text-slate-500 dark:text-slate-400">${h.reason}</p></div><button onclick='app.addAIHabit(${JSON.stringify(h)})' class="ml-3 bg-slate-200 dark:bg-dark-700 hover:bg-brand-600 hover:text-white w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 text-slate-600 dark:text-slate-300"><i class="fas fa-plus text-xs"></i></button>`;
+                            document.getElementById('ai-results').appendChild(el);
+                        });
+                    } catch(e) {}
+                }
+            }
+            async generateMotivation() {
+                document.getElementById('ai-coach-container').classList.remove('hidden');
+                document.getElementById('ai-coach-loading').classList.remove('hidden');
+                document.getElementById('ai-coach-text').innerHTML = '';
+                const active = app.habits.filter(h => !h.archived).map(h => ({ name: h.name, streak: h.streak }));
+                const prompt = `Act as a behavioral psychologist. My habits: ${JSON.stringify(active)}. 1. Praise best streak. 2. Suggest one tiny improvement. Keep short.`;
+                const res = await this.callAI(prompt);
+                document.getElementById('ai-coach-loading').classList.add('hidden');
+                if (res) document.getElementById('ai-coach-text').innerHTML = marked.parse(res);
+            }
+        }
+
+        // --- APP ENGINE ---
+        class App {
+            constructor() {
+                // Initialize empty, loadData is handled by auth flow largely or guest default
+                this.habits = []; 
+                this.settings = this.loadSettings();
+                this.view = 'home';
+                this.statsRange = 'W'; 
+                this.selectedDate = this.getTodayString();
+                this.addScreenState = 'categories';
+                
+                // Try initial load for guest mode immediately
+                try {
+                    const guestData = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+                    if(guestData) this.habits = guestData;
+                } catch(e) {}
+
+                try {
+                    this.init();
+                } catch(e) { console.error("App Init Failed", e); }
+            }
+
+            init() {
+                this.applySettings(); 
+                this.renderWeeklyCalendar();
+                this.renderColorPicker();
+                this.renderHabits();
+                this.updateTotalStreak();
+                this.renderCategoryTabs();
+                // Register Service Worker
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('./sw.js')
+                            .then(reg => console.log('SW registered'))
+                            .catch(err => console.log('SW failed', err));
+                    });
+                }
+            }
+            
+            loadSettings() {
+                try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{"language":"en","weekStart":"1","darkMode":false,"apiKey":""}'); } catch (e) { return { language: 'en', weekStart: '1', darkMode: false, apiKey: '' }; }
+            }
+
+            // --- KEY FIX: DYNAMIC STORAGE KEYS ---
+            getStorageKey() {
+                // If logged in via Supabase, separate key. Else guest key.
+                if (typeof sb !== 'undefined' && sb.user && sb.user.id) {
+                    return `ascend_habits_${sb.user.id}`;
+                }
+                return DB_KEY; // 'ascend_habits_v3' (Guest)
+            }
+            
+            // New Method: Load Guest Data Explicitly
+            loadGuestData() {
+                this.habits = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+                this.renderHabits();
+                this.updateTotalStreak();
+                this.updateStats();
+            }
+
+            saveData(skipSync = false) {
+                const key = this.getStorageKey();
+                localStorage.setItem(key, JSON.stringify(this.habits));
+                
+                // Add guard for sb existence
+                if (!skipSync && typeof sb !== 'undefined') sb.syncUp(this.habits);
+                this.updateTotalStreak();
+                try { this.updateStats(); } catch(e) { console.warn("Stats update warning", e); }
+            }
+
+            saveSettings() {
+                const lang = document.getElementById('setting-language').value;
+                const weekStart = '1'; 
+                const darkMode = document.getElementById('theme-toggle').checked;
+                const apiKey = document.getElementById('setting-api-key').value.trim();
+                this.settings = { language: lang, weekStart, darkMode, apiKey };
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+                this.applySettings();
+            }
+
+            toggleTheme() { this.saveSettings(); }
+
+            applySettings() {
+                if(document.getElementById('setting-language')) document.getElementById('setting-language').value = this.settings.language;
+                if(document.getElementById('theme-toggle')) document.getElementById('theme-toggle').checked = this.settings.darkMode;
+                if(document.getElementById('setting-api-key')) document.getElementById('setting-api-key').value = this.settings.apiKey || "";
+
+                if (this.settings.darkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+
+                this.translateUI();
+                this.renderWeeklyCalendar();
+                // Safe check
+                if(this.view === 'stats') {
+                    try { this.updateStats(); } catch(e) { console.warn("Stats error on applySettings", e); }
+                }
+            }
+            
+            translateUI() {
+                const lang = this.settings.language || 'en';
+                const texts = TRANSLATIONS[lang];
+                document.querySelectorAll('[data-translate]').forEach(el => {
+                    const key = el.getAttribute('data-translate');
+                    if (texts[key]) el.innerHTML = texts[key];
+                });
+                document.body.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            }
+
+            getTodayString() { return new Date().toISOString().split('T')[0]; }
+
+            selectDate(dateStr) {
+                this.selectedDate = dateStr;
+                this.renderWeeklyCalendar(); 
+                this.renderHabits(); 
+                const dateObj = new Date(dateStr);
+                const isToday = dateStr === this.getTodayString();
+                document.getElementById('home-date-title').innerText = isToday ? (TRANSLATIONS[this.settings.language].today || "Today") : dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                document.getElementById('home-subtitle').innerText = isToday ? (TRANSLATIONS[this.settings.language].upcomingHabits || "Upcoming Habits") : "Habit History";
+            }
+
+            renderWeeklyCalendar() {
+                const container = document.getElementById('weekly-calendar');
+                if(!container) return;
+                container.innerHTML = '';
+                const today = new Date();
+                const weekStartSetting = parseInt(this.settings.weekStart || '1'); 
+                const d = new Date(today);
+                const day = d.getDay();
+                const diff = (day < weekStartSetting) ? (7 - weekStartSetting + day) : (day - weekStartSetting);
+                d.setDate(d.getDate() - diff); 
+                const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                for (let i = 0; i < 7; i++) {
+                    const iterDate = new Date(d);
+                    iterDate.setDate(d.getDate() + i);
+                    const dateStr = iterDate.toISOString().split('T')[0];
+                    const dayNum = iterDate.getDate();
+                    const dayOfWeek = iterDate.getDay();
+                    const isSelected = (dateStr === this.selectedDate);
+                    const el = document.createElement('div');
+                    el.className = `flex flex-col items-center gap-2 cursor-pointer transition-all duration-300 transform ${isSelected ? 'scale-110' : 'hover:opacity-80'}`;
+                    el.onclick = () => this.selectDate(dateStr);
+                    el.innerHTML = `<span class="text-[10px] font-bold uppercase tracking-wider transition-colors ${isSelected ? 'text-brand-500' : 'text-slate-400'}">${days[dayOfWeek]}</span><div class="w-10 h-10 rounded-full flex items-center justify-center text-sm transition-colors ${isSelected ? 'font-bold bg-brand-500 text-white shadow-lg shadow-brand-500/30' : 'font-medium bg-transparent text-slate-500 dark:text-slate-400'}">${dayNum}</div>`;
+                    container.appendChild(el);
+                }
+            }
+            
+            updateTotalStreak() {
+                let streak = 0;
+                this.habits.filter(h => !h.archived).forEach(h => {
+                    if (h.type === 'build') streak += h.streak;
+                    else streak += this.getDaysSince(h.lastRelapse);
+                });
+                const el = document.getElementById('total-streak');
+                if(el) el.textContent = streak;
+            }
+
+            renderHabits() {
+                const container = document.getElementById('habits-list');
+                const activeHabits = this.habits.filter(h => !h.archived);
+                container.innerHTML = '';
+                if (activeHabits.length === 0) {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('empty-state').classList.add('hidden');
+                const viewDate = this.selectedDate;
+                activeHabits.forEach(habit => {
+                    const colorObj = COLORS.find(c => c.id === habit.color) || COLORS[0];
+                    const isCompleted = habit.history.includes(viewDate);
+                    const el = document.createElement('div');
+                    el.className = 'habit-card bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm flex items-center justify-between animate-slide-up transition-colors duration-300';
+                    if (habit.type === 'build') {
+                        el.innerHTML = `<div class="flex items-center gap-4 flex-1 cursor-pointer" onclick="app.openHabitDetails('${habit.id}')"><div onclick="event.stopPropagation(); app.toggleHabit('${habit.id}')" class="cursor-pointer w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${isCompleted ? colorObj.bg : 'bg-slate-100 dark:bg-dark-900'}"><i class="fas fa-check text-xl ${isCompleted ? 'text-white' : 'text-slate-300 dark:text-dark-700'}"></i></div><div><h3 class="font-bold text-lg leading-tight ${isCompleted ? 'text-slate-400 line-through decoration-slate-400' : 'text-slate-900 dark:text-white'} transition-all">${habit.name}</h3><div class="flex items-center gap-2 mt-1"><i class="fas fa-fire text-xs ${habit.streak > 0 ? colorObj.text : 'text-slate-400'}"></i><span class="text-xs font-medium text-slate-500 dark:text-slate-400">${habit.streak} day streak</span></div></div></div><div class="flex gap-1 pl-2">${this.renderHeatmap(habit)}</div><div class="flex flex-col gap-2 ml-2"><button onclick="event.stopPropagation(); app.archiveHabit('${habit.id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all"><i class="fas fa-archive text-xs"></i></button><button onclick="event.stopPropagation(); app.deleteHabitPermanent('${habit.id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all"><i class="fas fa-trash text-xs"></i></button></div>`;
+                    } else {
+                        const daysClean = this.getDaysSince(habit.lastRelapse);
+                        el.innerHTML = `<div class="flex items-center gap-4 flex-1 cursor-pointer" onclick="app.openHabitDetails('${habit.id}')"><div class="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-dark-900 overflow-hidden relative transition-colors"><div class="absolute inset-0 bg-red-500/10 z-0" style="height: ${Math.min(daysClean, 100)}%; bottom: 0; top: auto; width: 100%;"></div><i class="fas fa-ban text-xl text-red-500 z-10"></i></div><div><h3 class="font-bold text-lg leading-tight text-slate-900 dark:text-white transition-colors">${habit.name}</h3><div class="flex items-center gap-2 mt-1"><i class="fas fa-shield-alt text-xs text-emerald-500"></i><span class="text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-colors">${daysClean} days free</span></div></div></div><div class="flex flex-col gap-2 ml-2"><button onclick="event.stopPropagation(); app.relapseHabit('${habit.id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-dark-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-dark-600 transition-all"><i class="fas fa-undo text-xs"></i></button><button onclick="event.stopPropagation(); app.archiveHabit('${habit.id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all"><i class="fas fa-archive text-xs"></i></button><button onclick="event.stopPropagation(); app.deleteHabitPermanent('${habit.id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all"><i class="fas fa-trash text-xs"></i></button></div>`;
+                    }
+                    container.appendChild(el);
+                });
+            }
+
+            renderHeatmap(habit) {
+                let html = '';
+                const today = new Date();
+                for (let i = 4; i >= 0; i--) {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() - i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    const active = habit.history.includes(dateStr);
+                    const colorClass = COLORS.find(c => c.id === habit.color).bg;
+                    html += `<div class="w-2 h-2 rounded-full transition-colors ${active ? colorClass : 'bg-slate-200 dark:bg-dark-700'}"></div>`;
+                }
+                return html;
+            }
+
+            renderColorPicker() {
+                const container = document.getElementById('color-picker');
+                if(!container) return;
+                COLORS.forEach(c => {
+                    const btn = document.createElement('div');
+                    btn.className = `w-10 h-10 rounded-full cursor-pointer ${c.bg} transition-all duration-300 transform hover:scale-110 ring-2 ring-transparent`;
+                    btn.onclick = () => {
+                        document.getElementById('selected-color').value = c.id;
+                        Array.from(container.children).forEach(child => child.classList.remove('ring-slate-900', 'dark:ring-white'));
+                        btn.classList.add('ring-slate-900', 'dark:ring-white');
+                    };
+                    if (c.id === 'blue') btn.classList.add('ring-slate-900', 'dark:ring-white'); 
+                    container.appendChild(btn);
+                });
+            }
+
+            toggleHabit(id) {
+                const habit = this.habits.find(h => h.id === id);
+                if (!habit) return;
+                const dateToToggle = this.selectedDate;
+                const idx = habit.history.indexOf(dateToToggle);
+                if (idx > -1) {
+                    habit.history.splice(idx, 1);
+                    if (dateToToggle === this.getTodayString()) habit.streak = Math.max(0, habit.streak - 1); 
+                } else {
+                    habit.history.push(dateToToggle);
+                    if (dateToToggle === this.getTodayString()) { habit.streak += 1; triggerConfetti(); }
+                }
+                this.saveData();
+                this.renderHabits();
+            }
+
+            // --- CONFIRMATION LOGIC ---
+            showConfirm(title, message, onConfirm) {
+                document.getElementById('confirm-title').innerText = title;
+                document.getElementById('confirm-msg').innerText = message;
+                
+                const yesBtn = document.getElementById('confirm-yes-btn');
+                // Remove old listeners to prevent stacking
+                const newBtn = yesBtn.cloneNode(true);
+                yesBtn.parentNode.replaceChild(newBtn, yesBtn);
+                
+                newBtn.onclick = () => {
+                    onConfirm();
+                    this.closeConfirmModal();
+                };
+
+                const modal = document.getElementById('confirm-modal');
+                modal.classList.remove('hidden');
+            }
+
+            closeConfirmModal() {
+                document.getElementById('confirm-modal').classList.add('hidden');
+            }
+
+            async relapseHabit(id) {
+                const habit = this.habits.find(h => h.id === id);
+                if(!habit) return;
+                
+                this.showConfirm("Reset Streak", "Reset progress timer? Don't give up!", () => {
+                    const daysClean = this.getDaysSince(habit.lastRelapse);
+                    habit.lastRelapse = this.getTodayString();
+                    habit.history.push(this.getTodayString());
+                    this.saveData();
+                    this.renderHabits();
+                    
+                    // Simple follow-up for AI advice without blocking confirm
+                    if ((this.settings.apiKey || envApiKey) && confirm("Want a quick AI tip to prevent this trigger next time?")) {
+                         ai.getRelapseAdvice(habit.name, daysClean).then(advice => {
+                             if(advice) alert("🛡️ Relapse Rescue Strategy:\n\n" + advice);
+                         });
+                    }
+                });
+            }
+
+            saveHabit(e) {
+                e.preventDefault();
+                try {
+                    const nameInput = document.getElementById('habit-name');
+                    const name = nameInput.value;
+                    if(!name) return; // HTML required attribute handles this
+                    
+                    const typeInput = document.querySelector('input[name="habit-type"]:checked');
+                    const type = typeInput ? typeInput.value : 'build';
+                    
+                    const colorInput = document.getElementById('selected-color');
+                    const color = colorInput ? colorInput.value : 'blue';
+                    
+                    this.createHabit(name, type, color);
+                } catch(err) {
+                    console.error(err);
+                    alert("Error creating habit: " + err.message);
+                }
+            }
+
+            createHabit(name, type, color) {
+                const newHabit = { id: Date.now().toString(), name, type, color, streak: 0, history: [], lastRelapse: type === 'quit' ? this.getTodayString() : null, createdAt: this.getTodayString(), archived: false };
+                this.habits.push(newHabit);
+                this.saveData();
+                
+                // FIX: Completely close the add screen instead of going back
+                const page = document.getElementById('add-habit-page');
+                page.classList.remove('translate-x-0');
+                page.classList.add('translate-x-full');
+                
+                // Reset form state after animation
+                setTimeout(() => {
+                    this.addScreenState = 'categories';
+                    this.renderAddScreenState();
+                    document.getElementById('habit-name').value = '';
+                }, 300);
+
+                this.renderHabits();
+                triggerConfetti(); // Celebration for creating a new habit!
+            }
+
+            addAIHabit(habitData) { this.createHabit(habitData.name, habitData.type, habitData.color); }
+
+            archiveHabit(id) {
+                const habit = this.habits.find(h => h.id === id);
+                if (!habit) return;
+                this.showConfirm("Archive Habit", `Archive "${habit.name}"?`, () => {
+                    habit.archived = true;
+                    this.saveData();
+                    this.renderHabits();
+                });
+            }
+            
+            restoreHabit(id) {
+                const habit = this.habits.find(h => h.id === id);
+                if (!habit) return;
+                habit.archived = false;
+                this.saveData();
+                this.renderHabits();
+                this.openArchivedModal();
+            }
+            
+            deleteHabitPermanent(id) {
+                this.showConfirm("Delete Permanently", "This action cannot be undone.", () => {
+                    this.habits = this.habits.filter(h => h.id !== id);
+                    this.saveData();
+                    if (!document.getElementById('archive-modal').classList.contains('hidden')) this.openArchivedModal();
+                    this.renderHabits();
+                });
+            }
+
+            getDaysSince(dateStr) {
+                if (!dateStr) return 0;
+                const date = new Date(dateStr);
+                const today = new Date();
+                const diffTime = Math.abs(today - date);
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1; 
+            }
+
+            shareApp() {
+                if (navigator.share) navigator.share({ title: 'Ascend Habit Tracker', text: 'Check out this habit tracker!', url: window.location.href });
+                else alert("Copy this URL: " + window.location.href);
+            }
+
+            openAddScreen() {
+                this.addScreenState = 'categories';
+                this.renderAddScreenState();
+                const page = document.getElementById('add-habit-page');
+                page.classList.remove('translate-x-full');
+                page.classList.add('translate-x-0');
+                this.selectCategoryTab('popular');
+            }
+
+            closeAddScreen() {
+                const page = document.getElementById('add-habit-page');
+                if (this.addScreenState === 'form') { this.addScreenState = 'categories'; this.renderAddScreenState(); return; }
+                page.classList.remove('translate-x-0'); page.classList.add('translate-x-full');
+            }
+
+            // --- AUTH MODAL LOGIC ---
+            openAuthModal() {
+                const modal = document.getElementById('auth-modal');
+                const backdrop = document.getElementById('auth-backdrop');
+                const content = document.getElementById('auth-content');
+                modal.classList.remove('hidden');
+                // Animation frame for transition
+                setTimeout(() => {
+                    backdrop.classList.remove('opacity-0');
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            }
+
+            closeAuthModal() {
+                const modal = document.getElementById('auth-modal');
+                const backdrop = document.getElementById('auth-backdrop');
+                const content = document.getElementById('auth-content');
+                
+                backdrop.classList.add('opacity-0');
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+
+            renderCategoryTabs() {
+                const scrollContainer = document.getElementById('categories-scroll');
+                if(!scrollContainer) return;
+                scrollContainer.innerHTML = '';
+                PREDEFINED_CATEGORIES.forEach(cat => {
+                    const btn = document.createElement('button');
+                    btn.id = `cat-tab-${cat.id}`;
+                    btn.className = `whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 border border-transparent flex items-center gap-2`;
+                    btn.onclick = () => this.selectCategoryTab(cat.id);
+                    btn.innerHTML = `<i class="fas ${cat.icon}"></i> ${cat.name}`;
+                    scrollContainer.appendChild(btn);
+                });
+            }
+
+            selectCategoryTab(categoryId) {
+                const catData = PREDEFINED_CATEGORIES.find(c => c.id === categoryId);
+                if (!catData) return;
+                PREDEFINED_CATEGORIES.forEach(c => {
+                    const btn = document.getElementById(`cat-tab-${c.id}`);
+                    if(!btn) return;
+                    if (c.id === categoryId) btn.className = `whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-2 shadow-sm ${c.bg} ${c.color} border-${c.color.split('-')[1]}-200 dark:border-transparent transition-all duration-300`;
+                    else btn.className = `whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider border border-transparent flex items-center gap-2 text-slate-400 bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 dark:hover:bg-dark-700 transition-all duration-300`;
+                });
+                document.getElementById('cat-title').textContent = catData.name;
+                document.getElementById('cat-desc').textContent = catData.description || "Choose a habit to start.";
+                const listContainer = document.getElementById('cat-habits-list');
+                listContainer.innerHTML = '';
+                const habits = PREDEFINED_HABITS[categoryId] || [];
+                habits.forEach(h => {
+                    const btn = document.createElement('div');
+                    btn.className = 'p-4 bg-white dark:bg-dark-800 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-dark-700 transition-all duration-300 group';
+                    btn.onclick = () => this.selectPredefinedHabit(h);
+                    const colorObj = COLORS.find(c => c.id === h.color) || COLORS[0];
+                    btn.innerHTML = `<div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full ${colorObj.bg} bg-opacity-20 flex items-center justify-center ${colorObj.text} transition-colors"><i class="fas ${h.icon || 'fa-star'}"></i></div><span class="font-bold text-slate-700 dark:text-slate-200 group-hover:text-brand-500 transition-colors">${h.name}</span></div><i class="fas fa-plus-circle text-slate-300 group-hover:text-brand-500 transition-colors text-xl"></i>`;
+                    listContainer.appendChild(btn);
+                });
+            }
+
+            selectPredefinedHabit(habit) {
+                this.addScreenState = 'form';
+                document.getElementById('add-screen-title').textContent = 'Customize';
+                this.renderAddScreenState();
+                document.getElementById('habit-name').value = habit.name;
+                const typeInput = document.querySelector(`input[name="habit-type"][value="${habit.type}"]`);
+                if(typeInput) typeInput.checked = true;
+                document.getElementById('selected-color').value = habit.color;
+                const container = document.getElementById('color-picker');
+                if(container) {
+                    Array.from(container.children).forEach((child, index) => {
+                        child.classList.remove('ring-slate-900', 'dark:ring-white');
+                        if (COLORS[index].id === habit.color) child.classList.add('ring-slate-900', 'dark:ring-white');
+                    });
+                }
+            }
+
+            showHabitForm() {
+                this.addScreenState = 'form';
+                document.getElementById('add-screen-title').textContent = 'Custom Habit';
+                document.getElementById('habit-name').value = '';
+                this.renderAddScreenState();
+            }
+            
+            showAIForm() {
+                 this.addScreenState = 'form';
+                 document.getElementById('add-screen-title').textContent = 'AI Assistant';
+                 this.renderAddScreenState();
+                 document.getElementById('standard-form').classList.add('hidden');
+                 document.getElementById('ai-form').classList.remove('hidden');
+                 document.getElementById('ai-form').classList.add('flex');
+            }
+
+            renderAddScreenState() {
+                const catView = document.getElementById('category-view');
+                const formView = document.getElementById('form-view');
+                const stdForm = document.getElementById('standard-form');
+                const aiForm = document.getElementById('ai-form');
+                catView.classList.add('hidden');
+                formView.classList.add('hidden');
+                stdForm.classList.remove('hidden');
+                aiForm.classList.add('hidden');
+                aiForm.classList.remove('flex');
+                if (this.addScreenState === 'categories') { catView.classList.remove('hidden'); document.getElementById('add-screen-title').textContent = 'Choose Habit'; } 
+                else if (this.addScreenState === 'form') { formView.classList.remove('hidden'); }
+            }
+
+            openArchivedModal() {
+                const modal = document.getElementById('archive-modal');
+                const content = document.getElementById('archive-modal-content');
+                const list = document.getElementById('archived-list');
+                modal.classList.remove('hidden');
+                setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+                list.innerHTML = '';
+                const archived = this.habits.filter(h => h.archived);
+                if (archived.length === 0) {
+                    list.innerHTML = `<div class="text-center text-slate-400 py-8">No archived habits</div>`;
+                } else {
+                    archived.forEach(h => {
+                        const div = document.createElement('div');
+                        div.className = "flex items-center justify-between p-3 bg-slate-50 dark:bg-dark-800 rounded-xl transition-colors";
+                        div.innerHTML = `<span class="font-bold text-slate-700 dark:text-slate-300 transition-colors">${h.name}</span><div class="flex gap-2"><button onclick="app.restoreHabit('${h.id}')" class="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-2 py-1 rounded transition-colors">Restore</button><button onclick="app.deleteHabitPermanent('${h.id}')" class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 px-2 py-1 rounded transition-colors">Delete</button></div>`;
+                        list.appendChild(div);
+                    });
+                }
+            }
+            
+            closeArchiveModal() {
+                const modal = document.getElementById('archive-modal');
+                const content = document.getElementById('archive-modal-content');
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => modal.classList.add('hidden'), 200);
+            }
+
+            // --- HABIT DETAIL VIEW LOGIC ---
+            openHabitDetails(id) {
+                const habit = this.habits.find(h => h.id === id);
+                if (!habit) return;
+                document.getElementById('detail-habit-name').textContent = habit.name;
+                let streak = habit.streak;
+                if(!habit.bestStreak) habit.bestStreak = habit.streak;
+                if(habit.streak > habit.bestStreak) habit.bestStreak = habit.streak;
+                this.saveData();
+                document.getElementById('detail-current-streak').textContent = habit.streak;
+                document.getElementById('detail-best-streak').textContent = habit.bestStreak;
+                const totalDays = this.getDaysSince(habit.createdAt) + 1;
+                const completions = habit.history.length;
+                const rate = totalDays > 0 ? ((completions / totalDays) * 100).toFixed(0) : 0;
+                document.getElementById('detail-rate').textContent = `${rate}%`;
+                const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+                document.getElementById('detail-created').textContent = new Date(habit.createdAt).toLocaleDateString('en-US', dateOpts);
+                this.renderDetailCalendar(habit);
+                document.getElementById('habit-detail-screen').classList.remove('hidden');
+            }
+
+            closeHabitDetails() { document.getElementById('habit-detail-screen').classList.add('hidden'); }
+
+            renderDetailCalendar(habit) {
+                const container = document.getElementById('detail-calendar-container');
+                container.innerHTML = '';
+                const scrollWrapper = document.createElement('div');
+                scrollWrapper.className = 'overflow-x-auto no-scrollbar pb-2';
+                const flexContainer = document.createElement('div');
+                flexContainer.className = 'flex min-w-max';
+                const daysCol = document.createElement('div');
+                daysCol.className = 'flex flex-col justify-between pr-2 pt-6 pb-1 text-[10px] text-slate-400 font-medium h-32 sticky left-0 bg-white dark:bg-dark-800 z-10 transition-colors'; 
+                const weekStart = parseInt(this.settings.weekStart || '1');
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                let orderedDays = [];
+                for(let i=0; i<7; i++) orderedDays.push(dayNames[(weekStart + i) % 7]);
+                orderedDays.forEach((d, i) => {
+                    if (i % 2 === 0) daysCol.innerHTML += `<span>${d}</span>`; 
+                    else daysCol.innerHTML += `<span></span>`; 
+                });
+                const mapArea = document.createElement('div');
+                mapArea.className = 'flex flex-col';
+                const monthLabels = document.createElement('div');
+                monthLabels.className = 'flex text-[10px] text-slate-400 font-bold mb-2 h-4 relative transition-colors';
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-rows-7 grid-flow-col gap-1';
+                const today = new Date();
+                const endDate = new Date(today);
+                const startDate = new Date(today);
+                startDate.setMonth(today.getMonth() - 5);
+                const startDay = startDate.getDay();
+                const diff = (startDay < weekStart) ? (7 - weekStart + startDay) : (startDay - weekStart);
+                startDate.setDate(startDate.getDate() - diff);
+                let iterDate = new Date(startDate);
+                let lastMonth = -1;
+                while (iterDate <= endDate) {
+                    const dateStr = iterDate.toISOString().split('T')[0];
+                    const isDone = habit.history.includes(dateStr);
+                    const colorClass = COLORS.find(c => c.id === habit.color).bg;
+                    const cell = document.createElement('div');
+                    let bg = isDone ? colorClass : 'bg-slate-100 dark:bg-dark-700';
+                    cell.className = `w-3 h-3 rounded-sm ${bg} transition-colors`;
+                    cell.title = dateStr;
+                    grid.appendChild(cell);
+                    iterDate.setDate(iterDate.getDate() + 1);
+                }
+                let labelDate = new Date(startDate);
+                let weekCount = 0;
+                while (labelDate <= endDate) {
+                    if (labelDate.getDate() <= 7 && labelDate.getMonth() !== lastMonth) {
+                        const label = document.createElement('span');
+                        label.innerText = labelDate.toLocaleDateString('en-US', { month: 'short' });
+                        label.className = 'absolute';
+                        label.style.left = `${weekCount * 16}px`; 
+                        monthLabels.appendChild(label);
+                        lastMonth = labelDate.getMonth();
+                    }
+                    labelDate.setDate(labelDate.getDate() + 7);
+                    weekCount++;
+                }
+                mapArea.appendChild(monthLabels);
+                mapArea.appendChild(grid);
+                flexContainer.appendChild(daysCol);
+                flexContainer.appendChild(mapArea);
+                scrollWrapper.appendChild(flexContainer);
+                container.appendChild(scrollWrapper);
+            }
+
+            switchTab(tab) {
+                this.view = tab;
+                document.querySelectorAll('.nav-btn').forEach(b => {
+                    b.classList.remove('active', 'text-brand-500');
+                    b.classList.add('text-slate-400', 'dark:text-slate-500');
+                });
+                const activeBtn = document.querySelector(`.nav-btn[data-tab="${tab}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.remove('text-slate-400', 'dark:text-slate-500');
+                    activeBtn.classList.add('active', 'text-brand-500');
+                }
+                document.getElementById('main-content').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('settings-screen').classList.add('hidden');
+                document.getElementById('fab-btn').classList.add('hidden');
+                document.getElementById('habit-detail-screen').classList.add('hidden');
+                if (tab === 'home') {
+                    document.getElementById('main-content').classList.remove('hidden');
+                    document.getElementById('fab-btn').classList.remove('hidden');
+                } else if (tab === 'stats') {
+                    this.setStatsRange(this.statsRange); 
+                    document.getElementById('stats-screen').classList.remove('hidden');
+                } else if (tab === 'settings') {
+                    document.getElementById('settings-screen').classList.remove('hidden');
+                }
+            }
+
+            setStatsRange(range) {
+                this.statsRange = range;
+                this.updateStats();
+                ['W', 'M', 'Y', 'All'].forEach(r => {
+                    const btn = document.getElementById(`btn-range-${r}`);
+                    if(r === range) btn.className = "flex-1 py-1.5 rounded-lg bg-white dark:bg-dark-700 text-slate-900 dark:text-white shadow-sm transition-all relative z-10 font-bold";
+                    else btn.className = "flex-1 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all relative";
+                });
+            }
+
+            updateStats() {
+                const activeHabits = this.habits.filter(h => !h.archived);
+                const today = new Date();
+                let pastDate = new Date();
+                
+                if (this.statsRange === 'W') pastDate.setDate(today.getDate() - 7);
+                else if (this.statsRange === 'M') pastDate.setDate(today.getDate() - 30);
+                else {
+                    // Force a maximum 1-year lookback to prevent crashes on 'All' or 'Y'
+                    pastDate.setDate(today.getDate() - 365);
+                }
+                
+                const isInRange = (dateStr) => {
+                    const d = new Date(dateStr); d.setHours(0,0,0,0);
+                    const p = new Date(pastDate); p.setHours(0,0,0,0);
+                    const t = new Date(today); t.setHours(0,0,0,0);
+                    return d >= p && d <= t;
+                };
+                let totalCompletions = 0;
+                let totalPossible = 0;
+                const dailyCounts = {};
+                activeHabits.forEach(h => {
+                    if (h.type === 'build') {
+                        const relevantHistory = h.history.filter(d => isInRange(d));
+                        totalCompletions += relevantHistory.length;
+                        relevantHistory.forEach(d => { dailyCounts[d] = (dailyCounts[d] || 0) + 1; });
+                        const createdDate = new Date(h.createdAt);
+                        const effectiveStartDate = createdDate > pastDate ? createdDate : pastDate;
+                        const effectiveDiff = Math.abs(today - effectiveStartDate);
+                        const effectiveDays = Math.ceil(effectiveDiff / (1000 * 60 * 60 * 24)) + 1; 
+                        totalPossible += effectiveDays;
+                    }
+                });
+                const buildHabitsCount = activeHabits.filter(h => h.type === 'build').length;
+                let perfectDays = 0;
+                if (buildHabitsCount > 0) { Object.values(dailyCounts).forEach(count => { if (count >= buildHabitsCount) perfectDays++; }); }
+                const bestStreak = activeHabits.reduce((max, h) => (h.streak > max ? h.streak : max), 0);
+                const heatmapContainer = document.getElementById('stats-heatmap');
+                if(!heatmapContainer) return; 
+                heatmapContainer.innerHTML = '';
+                const preferredStart = parseInt(this.settings.weekStart || '1'); 
+                const iterDate = new Date(pastDate);
+                const currentDay = iterDate.getDay(); 
+                const diff = (currentDay < preferredStart) ? (7 - preferredStart + currentDay) : (currentDay - preferredStart);
+                iterDate.setDate(iterDate.getDate() - diff);
+                const endDate = new Date(today);
+                
+                let loopGuard = 0;
+                // Double safety limit
+                while (iterDate <= endDate && loopGuard < 400) {
+                    const dateStr = iterDate.toISOString().split('T')[0];
+                    const count = dailyCounts[dateStr] || 0;
+                    let bgClass = 'bg-slate-100 dark:bg-dark-700';
+                    if (count > 0) bgClass = 'bg-indigo-200 dark:bg-indigo-900/40';
+                    if (count > 2) bgClass = 'bg-indigo-400 dark:bg-indigo-600';
+                    if (count > 4) bgClass = 'bg-indigo-600 dark:bg-indigo-400';
+                    const cell = document.createElement('div');
+                    cell.className = `w-3 h-3 rounded-sm ${bgClass}`;
+                    cell.title = `${new Date(dateStr).toLocaleDateString()}: ${count}`;
+                    heatmapContainer.appendChild(cell);
+                    iterDate.setDate(iterDate.getDate() + 1);
+                    loopGuard++;
+                }
+                
+                // --- SAFELY UPDATE UI ELEMENTS ---
+                const elTotal = document.getElementById('stats-total-completions');
+                if(elTotal) elTotal.innerText = totalCompletions;
+                
+                const elPerfect = document.getElementById('stats-perfect-days');
+                if(elPerfect) elPerfect.innerText = perfectDays;
+                
+                const elBest = document.getElementById('stats-best-streak');
+                if(elBest) elBest.innerText = bestStreak;
+                
+                const rate = totalPossible > 0 ? Math.min(100, (totalCompletions / totalPossible) * 100).toFixed(0) : 0;
+                
+                const elBar = document.getElementById('stats-progress-bar');
+                if(elBar) elBar.style.width = `${rate}%`;
+                
+                const elRateHeader = document.getElementById('stats-rate-header');
+                if(elRateHeader) elRateHeader.innerText = `${rate}%`;
+            }
+        }
+
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const particles = [];
+            const colors = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b'];
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: canvas.width / 2, y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 5 + 2, life: 100
+                });
+            }
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+                particles.forEach(p => {
+                    if (p.life > 0) {
+                        active = true; p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 2; p.size *= 0.95;
+                        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                    }
+                });
+                if (active) requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        window.app = new App();
+        window.sb = new SupabaseService();
+        window.ai = new AIIntegration();
+
+    </script>
+</body>
+</html>
